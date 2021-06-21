@@ -1,4 +1,16 @@
-FROM python:3.8.0-slim
+FROM ubuntu:20.04
+
+USER root
+WORKDIR /root
+
+SHELL [ "/bin/bash", "-c" ]
+
+ARG PYTHON_VERSION_TAG=3.8.7
+ARG LINK_PYTHON_TO_PYTHON3=1
+
+# Existing lsb_release causes issues with modern installations of Python3
+# https://github.com/pypa/pip/issues/4924#issuecomment-435825490
+# Set (temporarily) DEBIAN_FRONTEND to avoid interacting with tzdata
 RUN apt-get -qq -y update && \
     DEBIAN_FRONTEND=noninteractive apt-get -qq -y install \
         gcc \
@@ -30,8 +42,15 @@ RUN apt-get -qq -y update && \
     apt-get -y autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-# Update pip
-RUN pip install --upgrade pip
+COPY install_python.sh install_python.sh
+RUN bash install_python.sh ${PYTHON_VERSION_TAG} ${LINK_PYTHON_TO_PYTHON3} && \
+    rm -r install_python.sh Python-${PYTHON_VERSION_TAG}
+
+# Enable tab completion by uncommenting it from /etc/bash.bashrc
+# The relevant lines are those below the phrase "enable bash completion in interactive shells"
+RUN export SED_RANGE="$(($(sed -n '\|enable bash completion in interactive shells|=' /etc/bash.bashrc)+1)),$(($(sed -n '\|enable bash completion in interactive shells|=' /etc/bash.bashrc)+7))" && \
+    sed -i -e "${SED_RANGE}"' s/^#//' /etc/bash.bashrc && \
+    unset SED_RANGE
 
 # Create user "docker" with sudo powers
 RUN useradd -m docker && \
@@ -53,7 +72,6 @@ ENV PATH /home/docker/.local/bin:$PATH
 
 # Avoid first use of sudo warning. c.f. https://askubuntu.com/a/22614/781671
 RUN touch $HOME/.sudo_as_admin_successful
-#WORKDIR /home/docker/data
 
 
 # Copy the source code
@@ -63,3 +81,7 @@ COPY ["src", "/home/docker/data/"]
 RUN pip install -r requirements.txt
 
 CMD [ "/bin/bash" ]
+
+
+# Special thanks to matthewfeickert
+# https://github.com/matthewfeickert/Docker-Python3-Ubuntu

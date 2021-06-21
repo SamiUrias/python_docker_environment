@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile    # Build based on the Dockerfile
+    command: tail -f /dev/null  # Avoid container to stop
+    volumes:
+        - ./src:/src/:rw  # Mount development directory
+
+volumes:
+    src: {}

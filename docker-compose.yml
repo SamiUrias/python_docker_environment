@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile    # Build based on the Dockerfile
     command: tail -f /dev/null  # Avoid container to stop
     volumes:
-        - ./src:/src/:rw  # Mount development directory
+        - ./src:/home/docker/data/:rw  # Mount development directory
 
 volumes:
     src: {}
